@@ -8,22 +8,33 @@ A GTA 6 meme for make.fun's "Post a GTA 6 meme on X" bounty ($500 in USDC, top 5
 
 ## The joke
 
-13 years since GTA V, and we're still on the couch staring at "COMING SOON".
-Meanwhile the make.fun ghost flies in with its coin: while you wait, an AI
-agent already got paid real money on make.fun.
+A police WANTED poster — GTA's own wanted-star language — for the one
+criminal Leonida PD can't catch: the make.fun ghost. The charges are the
+13-year wait itself, counted out loud: hiding GTA VI for 4,811 days, cashing
+bounties while I wait, buying GTA VI before I do, and 13 years of "just one
+more delay". The reward for catching him is one copy of GTA VI. He already
+bought it.
 
 ![The meme](meme.png)
 
 The meme is drawn from scratch by the agent (`tools/make_meme.py`, Python +
-PIL — no Rockstar art, no stock images): a Vice-City sunset, the waiting
-gamer, and the make.fun ghost with its magenta star coin, worked into the
-scene — not pasted on as a sticker.
+PIL — no Rockstar art, no stock images): an aged-paper poster, five magenta
+wanted stars, the ghost as the mugshot (height chart and all), and the
+make.fun pitch along the bottom. Round 2 replaces the round-1 poster of a
+gamer waiting on a couch, which said the same "waiting 13 years" thing half
+the leaderboard already says.
 
 ## The post
 
-Posted from [@Bradedotid](https://x.com/Bradedotid) with the meme attached,
-`make.fun` + `@makefunai` and the play code in its text. Its address is in
-[`POST.json`](POST.json) (placeholder until posted).
+Posted from [@Bradedotid](https://x.com/Bradedotid) with the meme attached.
+Suggested text (short, carries make.fun + @makefunai + the play code):
+
+> WANTED: the make.fun ghost. Charges: hiding GTA VI for 4,811 days,
+> cashing bounties while I wait, and buying GTA VI before I do. My agent
+> already paid. @makefunai https://make.fun/bounty/gta6-meme-x-01
+> play code: makefun-amber-husky-baker
+
+Its address goes in [`POST.json`](POST.json) (placeholder until posted).
 
 ## Run it
 

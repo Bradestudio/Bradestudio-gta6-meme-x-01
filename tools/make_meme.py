@@ -1,201 +1,151 @@
 #!/usr/bin/env python3
-"""Draw the gta6-meme-x-01 meme from scratch (no stock art, no Rockstar assets).
+"""Draw the gta6-meme-x-01 meme, round 2: a WANTED poster.
 
-Scene: a Vice-City-style sunset. A gamer waits on a couch in front of a TV
-that still says "COMING SOON" after 13 years, while the make.fun ghost flies
-in holding its magenta coin: while you wait, an agent already got paid.
+Concept (beats the round-1 poster, which was a generic "waiting 13 years"
+scene half the leaderboard already uses): the make.fun ghost as a wanted
+criminal. GTA's most iconic visual is the wanted-star level, and no top entry
+uses the poster format — rank 1 is a receipt, rank 2 a boss chat, rank 3 a
+prison release. A poster gives the same document-format punch as the winning
+receipt, but the ghost is the mugshot hero, and every line carries a specific,
+checkable detail: 4,811 days, 17 Sep 2013, one copy of GTA VI.
+
+All art is drawn from scratch with PIL (no Rockstar assets, no stock images).
 Output: meme.png, 1080x1080, make.fun readable at 480x480.
 """
 import math
+import random
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1080, 1080
-BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-REG = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+SANS = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+MONO = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
+
+PAPER = (243, 236, 218)
+INK = (25, 20, 15)
+PINK = (255, 0, 128)
+CHART = (208, 214, 219)
+CHART_LINE = (150, 155, 165)
 
 
-def font(size, bold=True):
-    return ImageFont.truetype(BOLD if bold else REG, size)
+def fnt(size, mono=False):
+    return ImageFont.truetype(MONO if mono else SANS, size)
 
 
-def lerp(a, b, t):
-    return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
+def centre(d, y, s, f, fill, stroke=0):
+    w = d.textlength(s, font=f)
+    d.text(((W - w) / 2, y), s, font=f, fill=fill,
+           stroke_width=stroke, stroke_fill=(0, 0, 0))
 
 
-def star_points(cx, cy, r_out, r_in, points=4, rot=-math.pi / 2):
+def left(d, x, y, s, f, fill):
+    d.text((x, y), s, font=f, fill=fill)
+
+
+def star_pts(cx, cy, ro, ri, n=5):
     pts = []
-    for i in range(points * 2):
-        r = r_out if i % 2 == 0 else r_in
-        a = rot + i * math.pi / points
+    for i in range(n * 2):
+        r = ro if i % 2 == 0 else ri
+        a = -math.pi / 2 + i * math.pi / n
         pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
     return pts
 
 
-def sparkle(draw, cx, cy, r, fill):
-    draw.polygon(star_points(cx, cy, r, r * 0.28), fill=fill)
+def star(d, cx, cy, ro, ri, fill, edge=None, n=5):
+    """A star with an optional dark rim (rim = slightly bigger star behind)."""
+    if edge is not None:
+        d.polygon(star_pts(cx, cy, ro * 1.12, ri * 1.12, n), fill=edge)
+    d.polygon(star_pts(cx, cy, ro, ri, n), fill=fill)
 
 
-def text_center(draw, y, s, fnt, fill, stroke=4, stroke_fill=(0, 0, 0)):
-    bbox = draw.textbbox((0, 0), s, font=fnt)
-    w = bbox[2] - bbox[0]
-    draw.text(((W - w) / 2, y), s, font=fnt, fill=fill,
-              stroke_width=stroke, stroke_fill=stroke_fill)
+def ghost_outline(cx, cy, w, h, grow=1.0):
+    """Sheet-ghost silhouette: half-ellipse top, straight sides, scalloped hem."""
+    pts = []
+    top_y = cy - h / 2
+    shoulder_y = top_y + h * 0.28
+    hem_y = cy + h * 0.32
+    for k in range(13):
+        a = math.pi + k * (math.pi / 12)
+        pts.append((cx + w * grow * math.cos(a),
+                    shoulder_y + h * 0.28 * grow * math.sin(a)))
+    pts.append((cx + w * grow, hem_y))
+    for fx, up in [(0.66, True), (0.33, False), (0.0, True),
+                   (-0.33, False), (-0.66, True), (-1.0, False)]:
+        pts.append((cx + fx * w * grow,
+                    cy + (h * 0.10 if up else h * 0.32) * grow))
+    return pts
 
 
-def wrapped(draw, box, s, fnt, fill, stroke=3):
-    x0, y0, x1, y1 = box
-    words, lines, cur = s.split(), [], ""
-    for word in words:
-        trial = (cur + " " + word).strip()
-        if draw.textlength(trial, font=fnt) <= (x1 - x0):
-            cur = trial
-        else:
-            lines.append(cur)
-            cur = word
-    if cur:
-        lines.append(cur)
-    lh = fnt.size + 8
-    total = len(lines) * lh
-    y = y0 + (y1 - y0 - total) // 2
-    for line in lines:
-        lw = draw.textlength(line, font=fnt)
-        draw.text((x0 + (x1 - x0 - lw) / 2, y), line, font=fnt, fill=fill,
-                  stroke_width=stroke, stroke_fill=(20, 0, 40))
-        y += lh
+def draw_ghost(d, cx, cy, s):
+    w, h = 95 * s, 130 * s
+    d.polygon(ghost_outline(cx, cy + 3, w, h, 1.07), fill=(0, 0, 0))
+    d.polygon(ghost_outline(cx, cy, w, h, 1.0), fill=(255, 255, 255))
+    star(d, cx - 0.36 * w, cy - 0.16 * h, 0.17 * w, 0.05 * w, (0, 0, 0), n=4)
+    star(d, cx + 0.36 * w, cy - 0.16 * h, 0.17 * w, 0.05 * w, (0, 0, 0), n=4)
+    d.ellipse([cx + 0.45 * w, cy + 0.02 * h, cx + 0.72 * w, cy + 0.29 * h],
+              fill=(255, 255, 255), outline=(0, 0, 0), width=4)
+    coin_cx, coin_cy, coin_r = cx + 0.55 * w, cy + 0.30 * h, 0.32 * w
+    d.ellipse([coin_cx - coin_r, coin_cy - coin_r,
+               coin_cx + coin_r, coin_cy + coin_r],
+              fill=PINK, outline=(0, 0, 0), width=5)
+    star(d, coin_cx, coin_cy, 0.20 * w, 0.08 * w, (255, 255, 255))
 
 
-img = Image.new("RGB", (W, H))
+img = Image.new("RGB", (W, H), PAPER)
 d = ImageDraw.Draw(img)
 
-# ---- sky: purple -> magenta -> orange sunset gradient ----
-top, mid, bot = (43, 10, 74), (255, 46, 136), (255, 154, 61)
-for y in range(700):
-    t = y / 700
-    c = lerp(top, mid, t) if t < 0.55 else lerp(mid, bot, (t - 0.55) / 0.45)
-    d.line([(0, y), (W, y)], fill=c)
+# ---- aged paper: faint stains + double border ----
+random.seed(13)
+for _ in range(16):
+    sx = random.randint(40, W - 40)
+    sy = random.randint(40, H - 40)
+    sr = random.randint(30, 110)
+    shade = random.choice([(235, 226, 204), (247, 241, 226)])
+    d.ellipse([sx - sr, sy - sr // 2, sx + sr, sy + sr // 2], fill=shade)
+d.rectangle([12, 12, W - 12, H - 12], outline=INK, width=10)
+d.rectangle([30, 30, W - 30, H - 30], outline=INK, width=2)
 
-# ---- striped retro sun ----
-sun_cx, sun_cy, sun_r = 540, 430, 210
-d.ellipse([sun_cx - sun_r, sun_cy - sun_r, sun_cx + sun_r, sun_cy + sun_r],
-          fill=(255, 211, 25))
-for i, gap in enumerate([0, 14, 34, 60, 92]):
-    y = sun_cy + 30 + i * 26
-    d.rectangle([sun_cx - sun_r - 5, y, sun_cx + sun_r + 5, y + gap // 3 + 6],
-                fill=lerp(mid, bot, 0.4 + i * 0.12))
+# ---- header: WANTED + five wanted stars + DEAD OR ALIVE ----
+centre(d, 36, "WANTED", fnt(148), INK)
+for i in range(5):
+    star(d, 540 + (i - 2) * 86, 205, 32, 13, PINK, edge=INK)
+centre(d, 245, "DEAD OR ALIVE", fnt(38), INK)
+centre(d, 285, "PREFERABLY ALIVE \u2014 HE OWES ME GTA VI", fnt(26), (90, 80, 65))
 
-# ---- skyline silhouettes with lit windows ----
-import random
-random.seed(6)
-skyline = (26, 6, 46)
-x = -20
-while x < W:
-    bw = random.randint(70, 150)
-    bh = random.randint(90, 260)
-    d.rectangle([x, 700 - bh, x + bw, 700], fill=skyline)
-    for wy in range(700 - bh + 14, 690, 30):
-        for wx in range(x + 12, x + bw - 10, 26):
-            if random.random() < 0.4:
-                d.rectangle([wx, wy, wx + 10, wy + 14],
-                            fill=random.choice([(255, 211, 25), (255, 120, 200)]))
-    x += bw + random.randint(4, 26)
+# ---- mugshot: height chart + ghost, framed ----
+d.rectangle([315, 315, 765, 565], fill=CHART, outline=INK, width=6)
+for gy in range(330, 565, 45):
+    d.line([(315, gy), (765, gy)], fill=CHART_LINE, width=2)
+for label, ly in [("6 FT", 332), ("5 FT", 422), ("4 FT", 512)]:
+    d.text((755, ly), label, font=fnt(20, mono=True), fill=(90, 95, 105),
+           anchor="ra")
+draw_ghost(d, 540, 430, 1.55)
+centre(d, 575, "MUGSHOT #000013 \u2014 LEONIDA PD", fnt(24, mono=True), INK)
 
-# ---- palm trees ----
-def palm(px, py, s, flip=1):
-    d.line([(px, py), (px + 14 * flip, py - 150 * s)], fill=(16, 4, 30), width=int(14 * s))
-    tx, ty = px + 14 * flip, py - 150 * s
-    for ang in (-70, -35, 0, 35, 70):
-        a = math.radians(ang - 90)
-        ex, ey = tx + 95 * s * math.cos(a) * flip, ty + 95 * s * math.sin(a)
-        d.arc([min(tx, ex) - 40 * s, ty - 90 * s, max(tx, ex) + 40 * s, ty + 30 * s],
-              start=200 if flip > 0 else -20, end=340 if flip > 0 else 120,
-              fill=(16, 4, 30), width=int(10 * s))
-        d.line([(tx, ty), (ex, ey)], fill=(16, 4, 30), width=int(6 * s))
+# ---- name + alias ----
+centre(d, 620, "THE MAKE.FUN GHOST", fnt(50), INK)
+centre(d, 680, "ALIAS: MY AGENT \u00b7 LAST SEEN OVER VICE CITY",
+       fnt(26, mono=True), (90, 80, 65))
+d.line([(90, 725), (990, 725)], fill=INK, width=3)
 
-palm(90, 700, 1.0, 1)
-palm(1010, 700, 0.85, -1)
+# ---- the charges: the joke, one specific detail per line ----
+charges = [
+    "CHARGE 01 \u2014 HIDING GTA VI FOR 4,811 DAYS",
+    "CHARGE 02 \u2014 CASHING BOUNTIES WHILE I WAIT",
+    "CHARGE 03 \u2014 BUYING GTA VI BEFORE I DO",
+    "CHARGE 04 \u2014 13 YEARS OF \u2018JUST ONE MORE DELAY\u2019",
+]
+for i, line in enumerate(charges):
+    left(d, 90, 745 + i * 44, line, fnt(28, mono=True), INK)
 
-# ---- street / ground ----
-d.rectangle([0, 700, W, H], fill=(24, 5, 40))
-d.rectangle([0, 700, W, 712], fill=(255, 46, 136))
+# ---- reward box ----
+d.rounded_rectangle([70, 915, 1010, 995], radius=18, fill=PINK,
+                    outline=INK, width=4)
+centre(d, 928, "REWARD: ONE COPY OF GTA VI \u2014 HE ALREADY BOUGHT IT.",
+       fnt(28), (255, 255, 255))
 
-# ---- TV on the left: "GTA VI - COMING SOON" ----
-d.rounded_rectangle([60, 760, 480, 1000], radius=18, fill=(10, 10, 18),
-                    outline=(255, 211, 25), width=5)
-d.rectangle([250, 1000, 290, 1024], fill=(10, 10, 18))
-d.text((95, 790), "GTA VI", font=font(64), fill=(255, 211, 25))
-d.text((95, 868), "COMING SOON...", font=font(34), fill=(255, 255, 255))
-d.text((95, 918), "13 YEARS AND COUNTING", font=font(26), fill=(255, 120, 200))
-
-# ---- couch + waiting gamer on the right ----
-d.rounded_rectangle([540, 880, 1020, 1010], radius=26, fill=(122, 20, 90),
-                    outline=(255, 255, 255), width=4)
-d.rounded_rectangle([540, 820, 1020, 900], radius=26, fill=(150, 30, 110),
-                    outline=(255, 255, 255), width=4)
-# gamer: slumped, cap backwards, holding a controller
-d.ellipse([700, 700, 800, 800], fill=(232, 184, 138))              # head
-d.pieslice([695, 690, 805, 770], start=180, end=360, fill=(255, 46, 136))  # cap
-d.rectangle([690, 728, 810, 748], fill=(255, 46, 136))              # cap brim
-d.ellipse([728, 738, 742, 752], fill=(0, 0, 0))                     # eye
-d.ellipse([758, 738, 772, 752], fill=(0, 0, 0))                     # eye
-d.rounded_rectangle([690, 800, 810, 920], radius=30, fill=(40, 180, 220))  # body
-d.line([(700, 850), (660, 920)], fill=(232, 184, 138), width=26)    # arm L
-d.line([(800, 850), (840, 920)], fill=(232, 184, 138), width=26)    # arm R
-d.rounded_rectangle([700, 900, 800, 940], radius=12, fill=(20, 20, 30),
-                    outline=(255, 255, 255), width=3)               # controller
-# thought: three dots above his head
-for (cx, cy, r) in [(830, 660, 10), (860, 620, 13), (895, 575, 16)]:
-    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(255, 255, 255),
-              outline=(0, 0, 0), width=3)
-
-# ---- top caption ----
-text_center(d, 36, "ME, WAITING 13 YEARS", font(72), (255, 255, 255), stroke=7)
-text_center(d, 118, "FOR GTA 6...", font(72), (255, 255, 255), stroke=7)
-
-# ---- make.fun ghost, big and clear, flying in from the top right ----
-def ghost(cx, cy, s):
-    # Classic sheet-ghost silhouette: sampled arc top, zigzag scallop bottom.
-    # Drawn black (slightly larger) then white on top, for a clean outline.
-    def outline_points(scale, dy=0):
-        pts = []
-        rx, ry = 100 * s * scale, 108 * s * scale
-        cy0 = cy - 8 * s + dy
-        for k in range(25):
-            a = math.pi + k * (math.pi / 24)
-            pts.append((cx + rx * math.cos(a), cy0 + ry * math.sin(a)))
-        pts.append((cx + rx, cy + 95 * s * scale + dy))
-        for i, fx in enumerate([66, 33, 0, -33, -66, -100]):
-            pts.append((cx + fx * s * scale,
-                        cy + (65 if i % 2 == 0 else 95) * s * scale + dy))
-        return pts
-
-    d.polygon(outline_points(1.07, dy=2), fill=(0, 0, 0))
-    d.polygon(outline_points(1.0), fill=(255, 255, 255))
-    # sparkle eyes
-    sparkle(d, cx - 38 * s, cy - 30 * s, 26 * s, (0, 0, 0))
-    sparkle(d, cx + 38 * s, cy - 30 * s, 26 * s, (0, 0, 0))
-    # little hand + magenta coin with white star
-    d.ellipse([cx + 62 * s, cy + 18 * s, cx + 92 * s, cy + 48 * s], fill=(255, 255, 255),
-              outline=(0, 0, 0), width=4)
-    d.ellipse([cx + 58 * s, cy + 52 * s, cx + 138 * s, cy + 132 * s],
-              fill=(255, 0, 128), outline=(0, 0, 0), width=5)
-    d.polygon(star_points(cx + 98 * s, cy + 92 * s, 30 * s, 12 * s, points=5),
-              fill=(255, 255, 255))
-
-ghost(880, 330, 0.85)
-
-# ---- speech bubble from the ghost (tail points UP to the ghost) ----
-d.polygon([(830, 478), (905, 478), (880, 425)], fill=(0, 0, 0))
-d.polygon([(838, 478), (897, 478), (880, 438)], fill=(255, 255, 255))
-d.rounded_rectangle([430, 470, 1010, 620], radius=28, fill=(255, 255, 255),
-                    outline=(0, 0, 0), width=5)
-wrapped(d, (455, 482, 985, 608),
-        "WHILE YOU WAIT, MY AGENT ALREADY GOT PAID ON make.fun!",
-        font(34), (20, 0, 40))
-
-# ---- bottom banner: make.fun, big, one centred line ----
-d.rectangle([0, 1024, W, H], fill=(255, 0, 128))
-text_center(d, 1032, "make.fun  —  AI agents win REAL money here", font(36),
-            (255, 255, 255), stroke=0)
+# ---- bottom line: the make.fun pitch, clear of the border ----
+centre(d, 1012, "make.fun \u2014 AI agents win REAL money here",
+       fnt(28), PINK)
 
 img.save("meme.png")
 print("saved meme.png", img.size)
