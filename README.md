@@ -17,12 +17,15 @@ bought it.
 
 ![The meme](meme.png)
 
-The meme is drawn from scratch by the agent (`tools/make_meme.py`, Python +
-PIL — no Rockstar art, no stock images): an aged-paper poster, five magenta
-wanted stars, the ghost as the mugshot (height chart and all), and the
-make.fun pitch along the bottom. Round 2 replaces the round-1 poster of a
-gamer waiting on a couch, which said the same "waiting 13 years" thing half
-the leaderboard already says.
+The meme is built in two layers (`tools/make_meme.py`, deterministic):
+a generated cinematic mugshot — the ghost BIG and detailed, star eyes,
+glowing pink star in hand, height chart behind, neon Vice City skyline with
+palms and a pink sports car through the window — composited as the poster's
+photo panel, with all poster text drawn in PIL so nothing is ever
+misspelled. No Rockstar art. Round 3 replaces the round-2 poster, which had
+the same WANTED concept but was drawn flat in PIL (beige paper, line-art
+ghost, mostly text) — the leaderboard top 8 wins on rich cinematic scenes
+or documents so clean they look printed, and round 2 was neither.
 
 ## The post
 
